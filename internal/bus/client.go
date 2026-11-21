@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // Package bus is the MQTT client of auto7. It reads presence, the chase
-// state and the state of the StationA sources, and it publishes on the own
-// auto7 slot only. It has no general publish and sends no command to
-// StationA. auto7 changes band through the CAT control of WSJT-X.
+// state and status, the auto7 slots of other hosts and the auto7 command
+// topic, and it publishes on the own auto7 slot only. It has no general
+// publish. It reads no StationA state and sends no command to StationA.
+// auto7 changes band through the CAT control of WSJT-X.
 //
 // Each delivered message carries its retained flag, its payload ts and
 // the local receive time. The client does not decide what a message means
@@ -53,13 +54,13 @@ type Options struct {
 
 // Client is the MQTT client of auto7.
 type Client struct {
-	site, station, host string
-	broker, user        string
-	password            string
-	topics              Topics
-	now                 func() time.Time
-	log                 *slog.Logger
-	paho                pahomqtt.Client
+	host         string
+	broker, user string
+	password     string
+	topics       Topics
+	now          func() time.Time
+	log          *slog.Logger
+	paho         pahomqtt.Client
 
 	queue  *queue
 	events chan Event
@@ -91,8 +92,6 @@ func New(cfg config.Config, opts Options) *Client {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
-		site:     cfg.Site,
-		station:  cfg.Station,
 		host:     cfg.Host,
 		broker:   cfg.MQTT.Broker,
 		user:     cfg.MQTT.User,
@@ -403,7 +402,7 @@ type subscription struct {
 
 // subscriptions lists every topic that the client reads.
 func (c *Client) subscriptions() []subscription {
-	subs := []subscription{
+	return []subscription{
 		{c.topics.Presence, decodePresence},
 		{c.topics.ChaseState, decodeChase},
 		{c.topics.ChaseStatus, statusDecoder(SlotChase)},
@@ -411,20 +410,6 @@ func (c *Client) subscriptions() []subscription {
 		{c.topics.PeerStatus, decodePeerStatus},
 		{c.topics.Cmd, c.decodeCmd},
 	}
-	stateDecoders := map[string]decoder{
-		SlotRadio:         decodeRadio,
-		SlotAntSwitch:     decodeAntSwitch,
-		SlotAntCtrl:       decodeAntCtrl,
-		SlotTuner:         decodeTuner,
-		SlotAntennaSelect: decodeAntennaSelect,
-	}
-	for _, slot := range stationSlots {
-		subs = append(subs,
-			subscription{schema.StateTopic(c.site, c.station, slot), stateDecoders[slot]},
-			subscription{schema.StatusTopic(c.site, c.station, slot), statusDecoder(slot)},
-		)
-	}
-	return subs
 }
 
 // handler builds the paho handler for one subscription. It runs on the
@@ -510,49 +495,6 @@ var decodeChase = stateDecoder(func(p struct {
 	Problems []string   `json:"problems"`
 }, m Meta) Event {
 	return ChaseState{Meta: m, Seq: p.Seq, Activity: p.Activity, Ranked: p.Ranked, Problems: p.Problems}
-})
-
-var decodeRadio = stateDecoder(func(p struct {
-	FreqHz       int64  `json:"freq_hz"`
-	Band         string `json:"band"`
-	Mode         string `json:"mode"`
-	TX           string `json:"tx"`
-	Tuning       bool   `json:"tuning"`
-	DeviceOnline bool   `json:"device_online"`
-}, m Meta) Event {
-	return RadioState{Meta: m, Band: p.Band, FreqHz: p.FreqHz, Mode: p.Mode, TX: p.TX == "tx", Tuning: p.Tuning, DeviceOnline: p.DeviceOnline}
-})
-
-var decodeAntSwitch = stateDecoder(func(p struct {
-	Selected string `json:"selected"`
-	Settled  bool   `json:"settled"`
-}, m Meta) Event {
-	return AntSwitchState{Meta: m, Selected: p.Selected, Settled: p.Settled}
-})
-
-var decodeAntCtrl = stateDecoder(func(p struct {
-	Moving       bool   `json:"moving"`
-	Band         string `json:"band"`
-	FreqHz       int64  `json:"freq_hz"`
-	DeviceOnline bool   `json:"device_online"`
-}, m Meta) Event {
-	return AntCtrlState{Meta: m, Moving: p.Moving, Band: p.Band, FreqHz: p.FreqHz, DeviceOnline: p.DeviceOnline}
-})
-
-var decodeTuner = stateDecoder(func(p struct {
-	Settling     bool `json:"settling"`
-	Inline       bool `json:"inline"`
-	DeviceOnline bool `json:"device_online"`
-}, m Meta) Event {
-	return TunerState{Meta: m, Settling: p.Settling, Inline: p.Inline, DeviceOnline: p.DeviceOnline}
-})
-
-var decodeAntennaSelect = stateDecoder(func(p struct {
-	Target string `json:"target"`
-	Mode   string `json:"mode"`
-	Source string `json:"source"`
-}, m Meta) Event {
-	return AntennaSelectState{Meta: m, Target: p.Target, Mode: p.Mode, Source: p.Source}
 })
 
 // hostOfTopic returns the host part of <site>/<station>/auto7/<host>/<suffix>.

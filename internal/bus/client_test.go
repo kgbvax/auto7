@@ -359,37 +359,32 @@ func TestPublishesOnOwnSlotOnly(t *testing.T) {
 	}
 }
 
-func TestStationSourcesDecode(t *testing.T) {
+// auto7 reads no StationA state. Only presence, chase-queue and the
+// auto7 slots have a subscription.
+func TestReadsNoStationATopics(t *testing.T) {
+	h := newHarness(t, nil)
+	base := testSite + "/" + testStation + "/"
+	for _, slot := range []string{"radio", "ant-switch", "ant-ctrl", "tuner", "antenna-select"} {
+		for _, suffix := range []string{"state", "status"} {
+			if n := h.broker.Subscribers(base + slot + "/" + suffix); n != 0 {
+				t.Errorf("%d subscribers on %s%s/%s, want none", n, base, slot, suffix)
+			}
+		}
+	}
+	tp := h.topics
+	for _, topic := range []string{tp.Presence, tp.ChaseState, tp.ChaseStatus, tp.Cmd,
+		base + "auto7/otherhost/state", base + "auto7/otherhost/status"} {
+		if n := h.broker.Subscribers(topic); n != 1 {
+			t.Errorf("%d subscribers on %s, want 1", n, topic)
+		}
+	}
+}
+
+func TestChaseAndPeerStatusDecode(t *testing.T) {
 	h := newHarness(t, nil)
 	ev := h.client.Events()
 	b, tp := h.broker, h.topics
-	slot := func(name, suffix string) string { return testSite + "/" + testStation + "/" + name + "/" + suffix }
 
-	b.Send(slot(SlotRadio, "state"), `{"ts":"2026-11-21T11:59:59Z","freq_hz":14074000,"band":"20m","mode":"data","tx":"tx","tuning":true,"device_online":true}`)
-	r := next[RadioState](t, ev, nil)
-	if !r.TX || !r.Tuning || r.Band != "20m" || r.FreqHz != 14074000 || r.Mode != "data" || !r.DeviceOnline || r.TS.IsZero() {
-		t.Errorf("radio = %+v", r)
-	}
-	b.Send(slot(SlotRadio, "status"), "online")
-	if s := next[Status](t, ev, nil); s.Slot != SlotRadio || !s.Online() {
-		t.Errorf("radio status = %+v", s)
-	}
-	b.Send(slot(SlotAntSwitch, "state"), `{"ts":"2026-11-21T11:59:58Z","selected":"port4","settled":true}`)
-	if s := next[AntSwitchState](t, ev, nil); s.Selected != "port4" || !s.Settled {
-		t.Errorf("ant-switch = %+v", s)
-	}
-	b.Send(slot(SlotAntCtrl, "state"), `{"ts":"2026-11-21T11:59:58Z","freq_hz":14074000,"band":"20m","moving":true,"device_online":true}`)
-	if s := next[AntCtrlState](t, ev, nil); !s.Moving || s.Band != "20m" {
-		t.Errorf("ant-ctrl = %+v", s)
-	}
-	b.Send(slot(SlotTuner, "state"), `{"ts":"2026-11-21T11:59:58Z","settling":true,"inline":false,"device_online":true}`)
-	if s := next[TunerState](t, ev, nil); !s.Settling || s.Inline {
-		t.Errorf("tuner = %+v", s)
-	}
-	b.Send(slot(SlotAntennaSelect, "state"), `{"ts":"2026-11-21T11:59:58Z","mode":"auto","target":"port6","source":"auto","activity":"active"}`)
-	if s := next[AntennaSelectState](t, ev, nil); s.Target != "port6" || s.Mode != "auto" {
-		t.Errorf("antenna-select = %+v", s)
-	}
 	b.Send(tp.ChaseStatus, "offline")
 	if s := next[Status](t, ev, nil); s.Slot != SlotChase || s.Online() {
 		t.Errorf("chase status = %+v", s)

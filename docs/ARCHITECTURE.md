@@ -53,7 +53,7 @@ Imports go in one direction. `internal/tx` imports only the types of `wsjtx`, `b
 
 TX control is any code that can make WSJT-X or MSHV transmit. It is also the code that decides the time at which auto7 can ask for a transmission. All TX control code lives in `internal/tx` (KTD2).
 
-Only `cmd/auto7` builds the UDP send handle and the raw publish handle for `radio/cmd`. It gives them only to the gate. `internal/bus` exports typed publish methods for the auto7 topics, and no general publish. If code outside `internal/tx` can send a TX command, a test in `internal/tx` (`boundary_test.go`) fails.
+Only `cmd/auto7` builds the UDP send handle. It gives it only to the gate. auto7 changes band through WSJT-X: the gate sends the ws-hunter command SetDialFrequency, and WSJT-X moves the radio by CAT. auto7 sends no command to StationA and reads no StationA state in this version. `internal/bus` exports typed publish methods for the auto7 topics, and no general publish. If code outside `internal/tx` can send a TX command, a test in `internal/tx` (`boundary_test.go`) fails.
 
 ## Interfaces to other systems
 
@@ -62,7 +62,7 @@ auto7 talks to other systems only through these interfaces:
 | Peer | Interface | Direction |
 |---|---|---|
 | WSJT-X or ws-hunter | UDP, WSJT-X protocol schema 3, fixed peer address (KTD4) | Both |
-| StationA and chase-queue | MQTT, by the StationA bus contract (KTD6, KTD17, KTD18) | Both |
+| logotter presence and chase-queue | MQTT, by the StationA bus contract (KTD6, KTD17, KTD18) | Both |
 | horstreporter | HTTP, read only (KTD13) | In |
 | The operator | A local web page on a loopback address (KTD5) | Both |
 

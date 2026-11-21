@@ -11,23 +11,14 @@ import (
 // BusDown is the reason text of a lost broker link.
 const BusDown = "bus down"
 
-// Slot names of the StationA sources that auto7 reads. They follow the
-// StationA station integration model.
+// Slot names on the bus. They follow the StationA station integration
+// model.
 const (
-	SlotRadio         = "radio"
-	SlotAntSwitch     = "ant-switch"
-	SlotAntCtrl       = "ant-ctrl"
-	SlotTuner         = "tuner"
-	SlotAntennaSelect = "antenna-select"
 	// SlotChase is the slot of chase-queue.
 	SlotChase = "chase"
 	// SlotAuto7 is the slot of auto7 itself.
 	SlotAuto7 = "auto7"
 )
-
-// stationSlots lists the StationA sources whose state and status auto7
-// reads.
-var stationSlots = []string{SlotRadio, SlotAntSwitch, SlotAntCtrl, SlotTuner, SlotAntennaSelect}
 
 // Status values on a /status topic.
 const (
@@ -81,8 +72,7 @@ func TopicsFor(site, station, host string) Topics {
 }
 
 // Event is one item on the event channel of the client. Its type is one
-// of Link, Presence, ChaseState, Status, RadioState, AntSwitchState,
-// AntCtrlState, TunerState, AntennaSelectState, PeerState, PeerStatus and
+// of Link, Presence, ChaseState, Status, PeerState, PeerStatus and
 // StopCommand.
 type Event interface {
 	isEvent()
@@ -127,10 +117,10 @@ type Presence struct {
 	Host string
 }
 
-// Status is the /status of a StationA source or of chase-queue.
+// Status is the /status of chase-queue.
 type Status struct {
 	Meta
-	// Slot is the slot name, for example SlotRadio or SlotChase.
+	// Slot is the slot name, SlotChase.
 	Slot string
 	// Value is the payload, for example "online". An empty value means
 	// that the retained status was cleared.
@@ -139,56 +129,6 @@ type Status struct {
 
 // Online reports whether the status is "online".
 func (s Status) Online() bool { return s.Value == StatusOnline }
-
-// RadioState is the /state of the radio slot.
-type RadioState struct {
-	Meta
-	Band   string
-	FreqHz int64
-	// Mode is the canonical mode, for example "data" or "usb".
-	Mode string
-	// TX is true while the radio transmits (tx field "tx").
-	TX bool
-	// Tuning is true during a tune cycle of the radio.
-	Tuning       bool
-	DeviceOnline bool
-}
-
-// AntSwitchState is the /state of the antenna switch.
-type AntSwitchState struct {
-	Meta
-	// Selected is the selected port, for example "port4" or "off".
-	Selected string
-	Settled  bool
-}
-
-// AntCtrlState is the /state of the antenna controller.
-type AntCtrlState struct {
-	Meta
-	Moving       bool
-	Band         string
-	FreqHz       int64
-	DeviceOnline bool
-}
-
-// TunerState is the /state of the tuner.
-type TunerState struct {
-	Meta
-	// Settling is true while a tune cycle is in progress.
-	Settling     bool
-	Inline       bool
-	DeviceOnline bool
-}
-
-// AntennaSelectState is the /state of the antennaselect reconciler.
-type AntennaSelectState struct {
-	Meta
-	// Target is the port that antennaselect wants, for example "port4".
-	// Empty means that it holds the last selection.
-	Target string
-	Mode   string
-	Source string
-}
 
 // PeerState is the /state of an auto7 host slot. It includes the own
 // host. The receiver decides which hosts to ignore.
@@ -219,18 +159,13 @@ type StopCommand struct {
 	Value string
 }
 
-func (Link) isEvent()               {}
-func (Presence) isEvent()           {}
-func (Status) isEvent()             {}
-func (RadioState) isEvent()         {}
-func (AntSwitchState) isEvent()     {}
-func (AntCtrlState) isEvent()       {}
-func (TunerState) isEvent()         {}
-func (AntennaSelectState) isEvent() {}
-func (PeerState) isEvent()          {}
-func (PeerStatus) isEvent()         {}
-func (StopCommand) isEvent()        {}
-func (ChaseState) isEvent()         {}
+func (Link) isEvent()        {}
+func (Presence) isEvent()    {}
+func (Status) isEvent()      {}
+func (PeerState) isEvent()   {}
+func (PeerStatus) isEvent()  {}
+func (StopCommand) isEvent() {}
+func (ChaseState) isEvent()  {}
 
 // ChaseState is the /state of chase-queue.
 //
