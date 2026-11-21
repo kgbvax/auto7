@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,7 +51,6 @@ type Env struct {
 	Broker        string
 	Link          *peers.LinkProxy
 	Conn          *peers.Conn
-	Station       *peers.Station
 	ChaseQueue    *peers.ChaseQueue
 	Presence      *peers.Presence
 	Horstreporter *peers.Horstreporter
@@ -90,10 +90,6 @@ func newEnv(t *testing.T) *Env {
 		t.Fatal(err)
 	}
 	t.Cleanup(e.Conn.Close)
-	if e.Station, err = peers.NewStation(e.Conn.Client, testSite, testStation, nil); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(e.Station.Close)
 	if e.ChaseQueue, err = peers.NewChaseQueue(e.Conn.Client, testSite, testStation, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -135,35 +131,15 @@ func runAuto7(t *testing.T, timeout time.Duration, args ...string) (string, erro
 	return string(out), err
 }
 
+// TestSmoke proves that the broker and the peers start, and that the
+// built binary runs. The other integration tests run auto7 for real.
 func TestSmoke(t *testing.T) {
-	e := newEnv(t)
-	if err := e.Station.SetOnline(); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.Station.SetRadio("20m", false, false); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.ChaseQueue.Publish(map[string]any{"ranked": []any{}}); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.Presence.Start(time.Second); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.WSJTX.SendHeartbeat(peers.RevisionHunter); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		for _, s := range e.Station.Slots() {
-			_ = s.Clear()
-		}
-		_ = e.ChaseQueue.Clear()
-	})
-
-	out, err := runAuto7(t, 30*time.Second)
+	newEnv(t)
+	out, err := runAuto7(t, 30*time.Second, "-h")
 	if err != nil {
-		t.Fatalf("auto7: %v\n%s", err, out)
+		t.Fatalf("auto7 -h: %v\n%s", err, out)
 	}
-	if out == "" {
-		t.Error("auto7 printed nothing")
+	if !strings.Contains(out, "AUTO7_MQTT_PASSWORD") {
+		t.Errorf("auto7 -h does not name AUTO7_MQTT_PASSWORD:\n%s", out)
 	}
 }

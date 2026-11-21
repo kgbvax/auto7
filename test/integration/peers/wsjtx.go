@@ -138,6 +138,8 @@ type Command struct {
 	Body []byte
 	// Err is set when the fake could not read the fields of a known type.
 	Err error
+	// At is the local receive time of the datagram.
+	At time.Time
 }
 
 // WSJTX is a fake WSJT-X instance. It sends scripted datagrams from a
@@ -296,6 +298,7 @@ func (w *WSJTX) read() {
 		if !ok {
 			continue
 		}
+		cmd.At = time.Now()
 		w.mu.Lock()
 		w.cmds = append(w.cmds, cmd)
 		close(w.changed)

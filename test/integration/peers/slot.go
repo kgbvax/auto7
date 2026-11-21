@@ -21,10 +21,10 @@ type Received struct {
 	Retained bool
 }
 
-// Slot is a fake StationA source at <site>/<station>/<name>. It publishes a
-// retained /state and /status and records every message on /cmd. It
-// publishes on change only, or also with a heartbeat after
-// StartHeartbeat.
+// Slot is a fake bus slot at <site>/<station>/<name>, for example the
+// slot of chase-queue. It publishes a retained /state and /status and
+// records every message on /cmd. It publishes on change only, or also
+// with a heartbeat after StartHeartbeat.
 type Slot struct {
 	client              pahomqtt.Client
 	site, station, name string
@@ -160,113 +160,4 @@ func (s *Slot) Commands() []Received {
 func (s *Slot) Close() {
 	s.StopHeartbeat()
 	s.client.Unsubscribe(s.CmdTopic()).WaitTimeout(time.Second)
-}
-
-// Slot names of the StationA sources that auto7 reads.
-const (
-	SlotRadio         = "radio"
-	SlotAntSwitch     = "ant-switch"
-	SlotAntCtrl       = "ant-ctrl"
-	SlotTuner         = "tuner"
-	SlotAntennaSelect = "antenna-select"
-)
-
-// Station is the set of fake StationA sources of one station.
-type Station struct {
-	Radio         *Slot
-	AntSwitch     *Slot
-	AntCtrl       *Slot
-	Tuner         *Slot
-	AntennaSelect *Slot
-}
-
-// NewStation creates the sources of <site>/<station>.
-func NewStation(c pahomqtt.Client, site, station string, now func() time.Time) (*Station, error) {
-	st := &Station{}
-	for _, p := range []struct {
-		slot **Slot
-		name string
-	}{
-		{&st.Radio, SlotRadio},
-		{&st.AntSwitch, SlotAntSwitch},
-		{&st.AntCtrl, SlotAntCtrl},
-		{&st.Tuner, SlotTuner},
-		{&st.AntennaSelect, SlotAntennaSelect},
-	} {
-		s, err := NewSlot(c, site, station, p.name, now)
-		if err != nil {
-			st.Close()
-			return nil, err
-		}
-		*p.slot = s
-	}
-	return st, nil
-}
-
-// Slots lists every source of the station.
-func (st *Station) Slots() []*Slot {
-	var out []*Slot
-	for _, s := range []*Slot{st.Radio, st.AntSwitch, st.AntCtrl, st.Tuner, st.AntennaSelect} {
-		if s != nil {
-			out = append(out, s)
-		}
-	}
-	return out
-}
-
-// SetOnline publishes the status "online" for every source.
-func (st *Station) SetOnline() error {
-	for _, s := range st.Slots() {
-		if err := s.SetStatus("online"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// SetRadio publishes the radio band, the tx field ("tx" or "rx") and the
-// tuning field, with device_online true.
-func (st *Station) SetRadio(band string, tx, tuning bool) error {
-	txv := "rx"
-	if tx {
-		txv = "tx"
-	}
-	return st.Radio.Set(map[string]any{"band": band, "tx": txv, "tuning": tuning, "device_online": true})
-}
-
-// SetAntSwitch publishes the selected port and the settled field.
-func (st *Station) SetAntSwitch(selected string, settled bool) error {
-	return st.AntSwitch.Set(map[string]any{"selected": selected, "settled": settled})
-}
-
-// SetAntCtrl publishes the moving field of the antenna controller.
-func (st *Station) SetAntCtrl(moving bool) error {
-	return st.AntCtrl.Set(map[string]any{"moving": moving})
-}
-
-// SetTuner publishes the settling field of the tuner.
-func (st *Station) SetTuner(settling bool) error {
-	return st.Tuner.Set(map[string]any{"settling": settling})
-}
-
-// SetAntennaSelectTarget publishes the target port of antennaselect.
-func (st *Station) SetAntennaSelectTarget(target string) error {
-	return st.AntennaSelect.Set(map[string]any{"target": target})
-}
-
-// Commands returns every message that the station received on a /cmd
-// topic.
-func (st *Station) Commands() []Received {
-	var out []Received
-	for _, s := range st.Slots() {
-		out = append(out, s.Commands()...)
-	}
-	return out
-}
-
-// Close closes every source.
-func (st *Station) Close() {
-	for _, s := range st.Slots() {
-		s.Close()
-	}
 }

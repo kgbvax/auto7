@@ -8,15 +8,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"testing"
 	"time"
-
-	pahomqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 // broker returns the URL of the test broker from BrokerEnv.
@@ -105,53 +102,6 @@ func TestWSJTXRecordsHaltTxAndSetTxDF(t *testing.T) {
 	}
 	if got := len(w.Commands()); got != 2 {
 		t.Errorf("recorded %d commands, want 2", got)
-	}
-}
-
-func TestStationPublishesSettledFalseThenTrue(t *testing.T) {
-	b := broker(t)
-	pub := connect(t, b, "peers-test-station")
-	sub := connect(t, b, "peers-test-subscriber")
-	clock := func() time.Time { return time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC) }
-	st, err := NewStation(pub.Client, "testsite", "hf", clock)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer st.Close()
-
-	seen := make(chan map[string]any, 8)
-	tok := sub.Subscribe(st.AntSwitch.StateTopic(), 1, func(_ pahomqtt.Client, m pahomqtt.Message) {
-		var doc map[string]any
-		if json.Unmarshal(m.Payload(), &doc) == nil {
-			seen <- doc
-		}
-	})
-	if !tok.WaitTimeout(5*time.Second) || tok.Error() != nil {
-		t.Fatalf("subscribe: %v", tok.Error())
-	}
-	defer func() { _ = st.AntSwitch.Clear() }()
-
-	if err := st.SetAntSwitch("port4", false); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.SetAntSwitch("port4", true); err != nil {
-		t.Fatal(err)
-	}
-	var got []any
-	timeout := time.After(5 * time.Second)
-	for len(got) < 2 {
-		select {
-		case doc := <-seen:
-			if doc["selected"] != "port4" || doc["ts"] != "2026-11-21T12:00:00Z" {
-				t.Errorf("state = %v", doc)
-			}
-			got = append(got, doc["settled"])
-		case <-timeout:
-			t.Fatalf("saw %v, want [false true]", got)
-		}
-	}
-	if got[0] != false || got[1] != true {
-		t.Errorf("settled = %v, want [false true]", got)
 	}
 }
 

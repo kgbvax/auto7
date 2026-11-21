@@ -116,29 +116,22 @@ func TestBusWillOfflineAfterDrop(t *testing.T) {
 
 func TestBusReadsPeers(t *testing.T) {
 	e := newEnv(t)
-	t.Cleanup(func() {
-		for _, s := range e.Station.Slots() {
-			_ = s.Clear()
-		}
-	})
-	if err := e.Station.SetRadio("20m", true, false); err != nil {
-		t.Fatal(err)
-	}
-	if err := e.Station.SetAntSwitch("port4", true); err != nil {
+	t.Cleanup(func() { _ = e.ChaseQueue.Clear() })
+	if err := e.ChaseQueue.Set(map[string]any{"seq": 1, "activity": "dx", "ranked": []any{}}); err != nil {
 		t.Fatal(err)
 	}
 	c := connectBus(t, e)
 
-	r := nextEvent[bus.RadioState](t, c, nil)
-	if !r.Retained || !r.TX || r.Band != "20m" || r.TS.IsZero() || r.Received.IsZero() {
-		t.Errorf("retained radio state = %+v, want retained 20m tx with ts", r)
+	r := nextEvent[bus.ChaseState](t, c, nil)
+	if !r.Retained || r.Seq != 1 || r.TS.IsZero() || r.Received.IsZero() {
+		t.Errorf("retained chase state = %+v, want retained seq 1 with ts", r)
 	}
-	if err := e.Station.SetAntSwitch("port6", false); err != nil {
+	if err := e.ChaseQueue.SetStatus(bus.StatusOnline); err != nil {
 		t.Fatal(err)
 	}
-	a := nextEvent(t, c, func(s bus.AntSwitchState) bool { return s.Selected == "port6" })
-	if a.Retained || a.Settled {
-		t.Errorf("live ant-switch state = %+v, want live and not settled", a)
+	st := nextEvent(t, c, func(s bus.Status) bool { return s.Slot == bus.SlotChase })
+	if st.Retained || !st.Online() {
+		t.Errorf("live chase status = %+v, want live online", st)
 	}
 
 	if err := e.Presence.Send(true, false); err != nil {

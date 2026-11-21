@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 // Package peers holds the test peers of the auto7 integration tests: a fake
-// WSJT-X, fake StationA sources, a fake chase-queue, a presence sender, a
-// fake horstreporter and a broker link that a test can cut. Every peer uses
-// only invented calls and loopback addresses.
+// WSJT-X, a fake chase-queue, a presence sender, a fake horstreporter and
+// a broker link that a test can cut. auto7 reads no StationA state, so
+// there is no fake StationA source. Every peer uses only invented calls
+// and loopback addresses.
 package peers
 
 import (
