@@ -4,3 +4,12 @@ __pycache__/
 .DS_Store
 .claude/worktrees/
 .claude/settings.local.json
+# Real configuration, captures and state files never go into the repository.
+/config.toml
+*.pcap
+*.pcapng
+captures/
+*.state.json
+state/
+*.adi
+*.adif

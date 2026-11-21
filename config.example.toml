@@ -1,0 +1,67 @@
+# auto7 configuration example. Every value is invented.
+# Copy this file to the user configuration directory as auto7/config.toml.
+# The MQTT password comes only from the environment variable
+# AUTO7_MQTT_PASSWORD. auto7 refuses a password key in this file.
+
+# The StationA site and station. They are the first parts of every topic.
+site = "site"
+station = "hf"
+
+# The name of this host. The default is the short host name.
+host = "shack-pc"
+
+# The dial frequencies in Hz of Fox and Hound operation.
+# auto7 never follows a spot on one of these dials.
+fox_hound_dials_hz = [14090000, 10141000, 7056000]
+
+[mqtt]
+# A plain tcp:// link needs a loopback or private address.
+# Use ssl:// for every other host.
+broker = "tcp://127.0.0.1:1883"
+client_id = "auto7-shack-pc"
+user = "auto7"
+
+[wsjtx]
+# The Id of the WSJT-X instance. auto7 accepts no other Id.
+id = "WSJT-X"
+# The loopback UDP address that WSJT-X sends to.
+listen = "127.0.0.1:2237"
+
+[page]
+# The loopback address of the operator page.
+listen = "127.0.0.1:8077"
+
+[presence]
+# The hosts whose presence heartbeat counts.
+hosts = ["shack-pc"]
+
+[horstreporter]
+# The base URL of horstreporter. Leave it empty to turn the requests off.
+url = "http://localhost:8090"
+# The own station: a locator or a callsign.
+qth = "JJ00aa"
+
+# The bands and modes that auto7 may use. 60m is not allowed.
+# FT4 on 160m is not allowed.
+[[bands]]
+name = "40m"
+modes = ["FT8", "FT4"]
+
+[[bands]]
+name = "20m"
+modes = ["FT8", "FT4"]
+
+[[bands]]
+name = "160m"
+modes = ["FT8"]
+
+# Each limit has a range. auto7 refuses a value outside it.
+[limits]
+tries = 4                  # 1 to 10
+tries_high_value = 12      # 1 to 30
+skip_minutes = 10          # 1 to 240
+cq_max_periods = 10        # 1 to 10
+cq_listen_periods = 4      # 4 to 20
+offset_moves_per_hour = 6  # 0 to 6
+offset_min_distance_hz = 50 # 50 to 1000
+not_heard_minutes = 30     # 5 to 120

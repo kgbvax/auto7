@@ -1,0 +1,126 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* The colors and the type follow opsotter docs/DESIGN.md. */
+:root {
+	--bg-app: #E9ECEF;
+	--bg-surface: #FFFFFF;
+	--bg-subtle: #F4F5F7;
+	--border-strong: #6B7280;
+	--border-default: #9CA3AF;
+	--border-grid: #D1D5DB;
+	--text: #111827;
+	--text-muted: #4B5563;
+	--accent: #1D4ED8;
+	--accent-text: #FFFFFF;
+	--accent-hover: #1E40AF;
+	--bg-hover: #E5E7EB;
+	--bg-pressed: #D1D5DB;
+	--focus: #1D4ED8;
+	--state-alarm: #B91C1C;
+	--state-alarm-bg: #FEE2E2;
+	--state-warn: #9A4508;
+	--state-warn-bg: #FEF3C7;
+	--state-info: #0369A1;
+	--state-info-bg: #E0F2FE;
+}
+* { box-sizing: border-box; }
+html { font-size: 14px; }
+body {
+	margin: 0;
+	background: var(--bg-app);
+	color: var(--text);
+	font: 400 14px/1.4 system-ui, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+	/* The page behaves like a desktop program: no text selection outside a field. */
+	-webkit-user-select: none;
+	user-select: none;
+}
+input, textarea { -webkit-user-select: text; user-select: text; }
+/* Text that the operator copies on purpose. */
+.selectable { -webkit-user-select: text; user-select: text; }
+main {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 8px;
+	padding: 8px;
+	max-width: 1100px;
+}
+.panel {
+	background: var(--bg-surface);
+	border: 1px solid var(--border-default);
+	border-radius: 6px;
+	overflow: hidden;
+}
+.title {
+	margin: 0;
+	padding: 4px 8px;
+	background: var(--bg-subtle);
+	border-bottom: 1px solid var(--border-default);
+	font-size: 14px;
+	font-weight: 600;
+}
+.body { padding: 8px; }
+.label { color: var(--text-muted); }
+.arm { margin: 0 0 8px; }
+.arm-on strong { color: var(--state-info); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions form { margin: 0; }
+button {
+	min-height: 26px;
+	padding: 2px 14px;
+	font: inherit;
+	color: var(--text);
+	background: var(--bg-surface);
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background-color 100ms;
+}
+button:hover { background: var(--bg-hover); }
+button:active { background: var(--bg-pressed); }
+button.primary {
+	color: var(--accent-text);
+	background: var(--accent);
+	border-color: var(--accent);
+}
+button.primary:hover { background: var(--accent-hover); }
+button:focus-visible, a:focus-visible {
+	outline: 2px solid var(--focus);
+	outline-offset: 2px;
+}
+.msg {
+	margin: 8px 0 0;
+	padding: 4px 8px;
+	border: 1px solid;
+	border-radius: 4px;
+	overflow-wrap: anywhere;
+}
+.alarm { color: var(--state-alarm); background: var(--state-alarm-bg); border-color: var(--state-alarm); }
+.warn { color: var(--state-warn); background: var(--state-warn-bg); border-color: var(--state-warn); }
+.info { color: var(--state-info); background: var(--state-info-bg); border-color: var(--state-info); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td {
+	padding: 3px 8px;
+	height: 24px;
+	border: 1px solid var(--border-grid);
+	text-align: left;
+	vertical-align: top;
+	overflow-wrap: anywhere;
+}
+tr > :first-child { border-left: 0; }
+tr > :last-child { border-right: 0; }
+thead th { background: var(--bg-subtle); font-weight: 600; }
+tbody th { font-weight: 400; color: var(--text-muted); width: 40%; }
+.data {
+	font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+	font-variant-numeric: tabular-nums;
+}
+.status {
+	padding: 4px 8px;
+	font-size: 12px;
+	color: var(--text-muted);
+	border-top: 1px solid var(--border-default);
+	background: var(--bg-subtle);
+}
+.status a { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+	button { transition: none; }
+}

@@ -34,3 +34,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## StationA shared packages
+
+`third_party/stationa-shared/` is a copy of the `shared` module of StationA (Codeberg `kgbvax/stationa`). auto7 uses it as the module `codeberg.org/kgbvax/stationa/shared`, with a `replace` line in `go.mod`, because Codeberg is not reachable from the build.
+
+- Source: `shared/` of StationA, git commit `78bff02` of 2026-11-14.
+- Copied: `LICENSE`, `go.mod`, `go.sum`, and the packages `mqtt`, `schema` and `logging`, with their tests.
+- Not copied: the packages `antmode` and `pstrotator`, because auto7 does not use them.
+- auto7 did not change the copied files. A change to them is a change in StationA.
+
+The packages are under the GNU Affero General Public License, version 3 or later (`AGPL-3.0-or-later`). The full text is in `third_party/stationa-shared/LICENSE`.
