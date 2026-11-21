@@ -12,6 +12,7 @@ import (
 
 	"github.com/kgbvax/auto7/internal/bus"
 	"github.com/kgbvax/auto7/internal/config"
+	"github.com/kgbvax/auto7/internal/tx"
 	"github.com/kgbvax/auto7/internal/wsjtx"
 )
 
@@ -153,37 +154,14 @@ func isCQModifier(s string) bool {
 	return len(s) >= 1 && len(s) <= 4 && strings.Trim(s, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") == ""
 }
 
-// bandEdge is one amateur band with its lowest and highest frequency.
-type bandEdge struct {
-	name   string
-	lo, hi uint64
-}
-
-// bandEdges holds the amateur bands from 160 m to 6 m. The edges are the
-// widest edges of the three IARU regions.
-var bandEdges = []bandEdge{
-	{"160m", 1_800_000, 2_000_000},
-	{"80m", 3_500_000, 4_000_000},
-	{"60m", 5_250_000, 5_450_000},
-	{"40m", 7_000_000, 7_300_000},
-	{"30m", 10_100_000, 10_150_000},
-	{"20m", 14_000_000, 14_350_000},
-	{"17m", 18_068_000, 18_168_000},
-	{"15m", 21_000_000, 21_450_000},
-	{"12m", 24_890_000, 24_990_000},
-	{"10m", 28_000_000, 29_700_000},
-	{"6m", 50_000_000, 54_000_000},
-}
-
 // BandOf returns the band name of a frequency in Hz, for example "20m".
-// It returns "" outside the bands from 160 m to 6 m.
+// It returns "" outside the bands from 160 m to 6 m. It knows 60m, which
+// the band table of the gate leaves out.
 func BandOf(hz uint64) string {
-	for _, b := range bandEdges {
-		if hz >= b.lo && hz <= b.hi {
-			return b.name
-		}
+	if hz >= 5_250_000 && hz <= 5_450_000 {
+		return "60m"
 	}
-	return ""
+	return tx.BandOf(hz)
 }
 
 // ModeOf returns FT8 or FT4 for a decode. decodeMode is the mode symbol
