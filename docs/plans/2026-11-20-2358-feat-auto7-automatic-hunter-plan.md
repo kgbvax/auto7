@@ -20,7 +20,7 @@ deepened: 2026-11-21
 - Stop conditions: stop and ask the operator in four cases. A unit needs code in another project. A unit needs a TX control path outside `internal/tx`. A test against the real WSJT-X or ws-hunter shows a protocol fact that contradicts a KTD. A unit needs a secret, a host address or a callsign in the repository.
 - Open blockers: three changes in other projects (Risks and Dependencies). auto7 runs in a reduced form until they land.
 
-Product Contract preservation: changed during planning on 2026-11-21 by decisions of the operator. R5 is removed. R4, R7, R12 and R25 no longer name MSHV. R30, R31 and R32 are new. AE4 is removed. Outstanding questions are resolved in KTD5, KTD12, KTD15 and R25.
+Product Contract preservation: changed during planning on 2026-11-21 by decisions of the operator. R5 is removed. R4, R7, R12 and R25 no longer name MSHV. R30, R31 and R32 are new. AE4 is removed. Outstanding questions are resolved in KTD5, KTD12, KTD15 and R25. Changed again on 2026-11-21 by a decision of the operator. auto7 changes band and frequency through the CAT control of WSJT-X, not with commands on the StationA bus. R6, R24, R25, KTD2, KTD12 and the units that send band changes follow this decision.
 
 ---
 
@@ -34,22 +34,22 @@ auto7 becomes a fully automatic FT8 and FT4 hunter that runs only while the oper
 
 Today the operator hunts needed entities in FT8 and FT4 by hand. The operator selects a band, watches the decodes, calls, and answers callers. Openings and rare stations go by while the operator does other work, or while the operator operates remotely from a laptop. A manual hunt also visits the bands at random. So a quiet band, such as 80 m in daytime, costs the same time as an open band.
 
-The station has the parts that an automatic hunter needs, but nothing joins them. chase-queue knows which stations are needed. horstreporter knows which bands are active. StationA can change the band, and the antennas, tuner and PA follow the band by themselves. WSJT-X decodes and runs the QSO sequence.
+The station has the parts that an automatic hunter needs, but nothing joins them. chase-queue knows which stations are needed. horstreporter knows which bands are active. WSJT-X controls the radio by CAT, and the antennas, tuner and PA follow the band by themselves. WSJT-X decodes and runs the QSO sequence.
 
 ### Actors
 
 - A1. Operator: enables and stops auto7, keeps the band list, keeps the PA out of the path, and is present while auto7 transmits.
 - A2. auto7: decides what the station does next and asks WSJT-X to do it.
-- A3. WSJT-X: decodes, transmits and runs the QSO sequence. It runs on the same computer as auto7.
+- A3. WSJT-X: decodes, transmits, runs the QSO sequence, and sets the dial of the radio by CAT. It runs on the same computer as auto7.
 - A4. chase-queue (opsotter): decides which stations are needed.
-- A5. StationA: carries the band commands and reports the radio and antenna state.
+- A5. StationA: reports the radio and antenna state.
 - A6. horstreporter: reports band activity from PSK Reporter data.
 - A7. logotter (opsotter): sends the presence heartbeat and takes the logged QSOs.
 
 ### Key Decisions
 
 - **Attended operation only, also remote.** "Fully automatic" means no clicks, not no operator. Governs R2, R7. (session-settled: user-directed, chosen over unattended operation: the presence rule of `CLAUDE.md` stays, and remote-attended operation from a laptop counts as present)
-- **auto7 acts on the station only through band commands.** Governs R6. (session-settled: user-directed, chosen over commands for the PA and the power, and over no station commands at all: StationA moves antennas, tuner and PA band by itself)
+- **auto7 changes band only through the CAT control of WSJT-X.** auto7 sends no commands to the station over the StationA bus. Governs R6. (session-settled: user-directed on 2026-11-21, chosen over band commands on the StationA bus: band and frequency changes go through the CAT integration of WSJT-X or MSHV, and StationA moves antennas, tuner and PA band by itself)
 - **No PA guard in this version.** auto7 neither commands nor reads the PA. Governs R6. (session-settled: user-directed, chosen over a guard on PA standby or a proven off: the operator dropped the PA requirement R5)
 - **No power limit in this version.** The 20% power rule moves to a later version. Governs R6. (session-settled: user-directed, chosen over a bridge power limit with a guard, and over a guard on the drive: the operator decided that this version does not limit the power)
 - **A patched WSJT-X build is the path for CQ and the TX offset.** Stock WSJT-X UDP cannot set the TX offset. It also cannot turn Enable Tx on without a Reply. Governs R24, R25. (session-settled: user-directed, chosen over waiting for an upstream feature, over MSHV first, and over driving the program GUI)
@@ -72,7 +72,7 @@ The station has the parts that an automatic hunter needs, but nothing joins them
 - R2. **TX needs the operator present.** auto7 transmits only while it is enabled and the operator is present. Present means a live logotter presence heartbeat, from the station PC or from the laptop of the operator during remote operation.
 - R3. **Stop at once.** The operator can stop auto7 at once. When auto7 stops, or when presence or a required input becomes stale or missing, auto7 sends HaltTx and makes no new call.
 - R4. **Disable on operator action.** When the operator halts TX, turns Enable Tx off, or changes band or mode in WSJT-X, auto7 disables itself.
-- R6. **Bus commands for band only.** auto7 acts on the station only with band and frequency commands on the StationA bus. It never commands the PA, the radio power, the antennas, the tuner or the rotators.
+- R6. **Band changes through WSJT-X only.** auto7 changes band and frequency only through the CAT control of WSJT-X. It sends no commands to the station over the StationA bus. It never commands the PA, the radio power, the antennas, the tuner or the rotators.
 - R7. **Run on the WSJT-X computer.** auto7 runs on the computer where WSJT-X runs: the station PC, or the laptop of the operator during remote operation.
 - R8. **Show the state.** auto7 shows its state to the operator: enabled or stopped, band and mode, current task, the reason for the last stop, and reduced mode (R25).
 - R30. **Every stop latches.** Every stop latches. After a stop, auto7 calls again only after the operator enables it again.
@@ -108,8 +108,8 @@ The station has the parts that an automatic hunter needs, but nothing joins them
 
 **Programs**
 
-- R24. **Use a patched WSJT-X.** CQ (R22) and the choice of the TX offset (R20, R21) use a patched WSJT-X build. Its UDP commands set the TX offset and turn Enable Tx on. auto7 describes these commands. The patched build lives in its own fork, outside this repository.
-- R25. **Reduced mode with stock WSJT-X.** With stock WSJT-X, auto7 runs in reduced mode. It hunts and answers, but it calls no CQ and does not choose its TX offset.
+- R24. **Use a patched WSJT-X.** CQ (R22), the choice of the TX offset (R20, R21) and band changes (R16, R18) use a patched WSJT-X build. Its UDP commands set the dial frequency and the TX offset, and turn Enable Tx on. auto7 describes these commands. The patched build lives in its own fork, outside this repository.
+- R25. **Reduced mode with stock WSJT-X.** With stock WSJT-X, auto7 runs in reduced mode. It hunts and answers on the band that the operator set, but it calls no CQ, does not choose its TX offset, and does not change band.
 
 **Behavior on the air**
 
@@ -138,7 +138,7 @@ The station has the parts that an automatic hunter needs, but nothing joins them
 - F3. Leave a band
   - **Trigger:** The rate of needed QSOs on the band drops below the average. Or chase-queue shows a high-value spot on another listed band.
   - **Actors:** A2, A4, A5, A6
-  - **Steps:** auto7 waits until no QSO runs. Then it changes band with a bus command. StationA moves antennas, tuner and PA band, and auto7 waits for the station to settle.
+  - **Steps:** auto7 waits until no QSO runs. Then it asks WSJT-X to set the dial of the new band, and WSJT-X moves the radio by CAT. StationA moves antennas, tuner and PA band, and auto7 waits for the station to settle.
   - **Covered by:** R16, R17, R18, R19, R32
 
 - F4. Stop
@@ -234,11 +234,11 @@ flowchart TB
 ### Sources
 
 - `docs/plans/2026-11-20-1003-feat-auto7-v1-plan.md`: the draft v1 plan with decisions D1 to D6.
-- StationA `docs/station-integration-model.md` and `flexbridge/internal/bridge/bridge.go`: radio commands `set_band` and `set_freq`, the radio state, and the band follow of antennaselect.
+- StationA `docs/station-integration-model.md` and `flexbridge/internal/bridge/bridge.go`: the radio state and the band follow of antennaselect.
 - opsotter `operating/chase-queue/docs/chase-queue-mqtt-api.md` and `internal/bus/bus.go`: the row fields `needs[]` with `atno`, and the `expedition` tier.
 - horstreporter `docs/api.md`: `/api/dx_conditions` (`activity_level`, `activity_ratio`) and `/api/hot_bands`.
 - WSJT-X `Network/NetworkMessage.hpp`, `widgets/mainwindow.cpp` and `models/FrequencyList.cpp`: the UDP messages, the Reply and Enable Tx behavior, and the default dial frequencies.
-- ws-hunter (`github.com/TheBengineer/ws-hunter`, branch `hunter`): the message types 24 to 28.
+- ws-hunter (`github.com/TheBengineer/ws-hunter`, branch `hunter`): the message types 20 (SetDialFrequency) and 24 to 28.
 
 ---
 
@@ -260,10 +260,10 @@ flowchart TB
   2. The QSO view (KTD11) and the refusal of calls while Special Op Mode is not 0 (R31).
   3. Request timing: each call or answer request carries the time of its source decode. The gate refuses a request older than one period. It also refuses a request that arrives later than 2 s after the slot start. The reason is "too late for this slot".
   4. Hard limits as constants: ceilings for the CQ run and the offset moves per hour, and a floor for the offset distance of R27 (KTD15).
-  5. All senders: Reply, HaltTx, FreeText, Configure, HighlightCallsign, the ws-hunter commands, and `set_freq` on the bus.
+  5. All senders: Reply, HaltTx, FreeText, Configure, HighlightCallsign and the ws-hunter commands, with SetDialFrequency for band changes.
 
-  Only `cmd/auto7` builds the UDP send handle and the raw bus publish handle for `radio/cmd`, and it passes them only to the gate. `internal/bus` exports only typed publish methods for the auto7 slot topics, and no general topic publish. A test in `internal/tx` reads the import graph. If a package outside `internal/tx` imports `internal/tx/send`, the test fails. If a package outside `internal/tx`, `internal/bus` and `cmd/auto7` imports paho, the test also fails. Governs R2, R3, R4, R13, R19, R27, R30, R31, R32.
-- KTD3. **Patched build: the ws-hunter message types.** auto7 uses the ws-hunter types 24 (SetTxDF), 25 (SetHoldTxFreq), 26 (SetTxEnabled), 27 (SpectrumSummary) and 28 (ClearDX) as its contract. It detects the build from the Heartbeat revision suffix `-hunter`. Without that suffix, auto7 runs in reduced mode, and the gate refuses CQ and offset requests. ws-hunter is a GPL-3 fork of WSJT-X Improved, and auto7 only talks to it over UDP, so auto7 copies no GPL code. Governs R24, R25. (session-settled: user-directed, chosen over a wait for an upstream feature, over MSHV first, and over driving the GUI. The operator chose a patched build, and ws-hunter contains the needed commands)
+  Only `cmd/auto7` builds the UDP send handle, and it passes it only to the gate. `internal/bus` exports only typed publish methods for the auto7 slot topics, and no general topic publish. No code of auto7 publishes on a StationA command topic. A test in `internal/tx` reads the import graph. If a package outside `internal/tx` imports `internal/tx/send`, the test fails. If a package outside `internal/tx`, `internal/bus` and `cmd/auto7` imports paho, the test also fails. Governs R2, R3, R4, R13, R19, R27, R30, R31, R32.
+- KTD3. **Patched build: the ws-hunter message types.** auto7 uses the ws-hunter types 20 (SetDialFrequency), 24 (SetTxDF), 25 (SetHoldTxFreq), 26 (SetTxEnabled), 27 (SpectrumSummary) and 28 (ClearDX) as its contract. It detects the build from the Heartbeat revision suffix `-hunter`. Without that suffix, auto7 runs in reduced mode, and the gate refuses CQ, offset and band change requests. ws-hunter is a GPL-3 fork of WSJT-X Improved, and auto7 only talks to it over UDP, so auto7 copies no GPL code. Governs R6, R24, R25. (session-settled: user-directed, chosen over a wait for an upstream feature, over MSHV first, and over driving the GUI. The operator chose a patched build, and ws-hunter contains the needed commands)
 - KTD4. **Own UDP codec, fixed peer.** auto7 carries its own codec for the WSJT-X protocol, schema 3, with the ws-hunter types. The receive side lives in `internal/wsjtx`, and the command encoders live in `internal/tx/send`. The library `k0swe/wsjtx-go` reads into a fixed 1024-byte buffer, keeps one peer address, and has no hook for extra types. The codec is chosen over a fork of that library, because auto7 must then maintain the fork. The socket binds to `127.0.0.1` and accepts only the configured WSJT-X Id. The peer address is fixed at the first Heartbeat. A later change of the source address counts as a stale WSJT-X input (KTD8). auto7 learns a new address only while it is stopped. Governs R7.
 - KTD5. **Operator surface: a guarded local page plus a bus slot.** The Enable and Stop handlers live in `internal/tx/web`, and `internal/ui` renders the state around them. These rules guard the handlers:
   1. Only POST changes state. Each POST must carry the configured loopback Host and port.
@@ -290,11 +290,11 @@ flowchart TB
   The antenna switch and the tuner publish only on change, so a band change that does not move them brings no new message. The gate therefore keeps the latest state of each source that arrived live over the current bus connection. A retained replay at subscribe does not count. The gate requires a message after the band change only from a source that the change must move. The antenna switch is such a source while the antennaselect target differs from `selected`. The antenna controller is such a source while its port is selected. The antenna controller polls every 2 s. A tuner that is offline or reports no tune cycle does not block. Each source that blocks must report status `online`. After 60 s without readiness, auto7 stops with the reason "station not ready". Governs R32.
 - KTD11. **The gate owns the QSO view.** A QSO starts at the first decode from the DX call that carries the call of the operator. It ends at QSOLogged, at the sent RR73 or 73 plus two periods, or after four periods with no reply. The gate builds this view only from WSJT-X data: Status, decodes with the operator call, and QSOLogged. `internal/hunt` keeps no copy. It reads the QSO view from the state type that the gate exposes. The operator must turn on the WSJT-X option "Auto Seq", so WSJT-X runs the QSO sequence, and turn off "Prompt me to log QSO". When QSOLogged does not come after an RR73, auto7 shows "automatic log off". Governs R13, R19.
 - KTD12. **Band and mode change as one gate request.** `internal/bands` sends one request with band and mode. Under its own lock, the gate does these steps:
-  1. It makes sure that the radio is in receive and no QSO runs. If Enable Tx is on, it sends HaltTx with `auto_only` true and records it (KTD9). Then it waits for a Status with Enable Tx false and Transmitting false. WSJT-X keeps Enable Tx on across a CAT dial change, so without this step it can transmit on the new band in the next slot.
+  1. It makes sure that the radio is in receive and no QSO runs. If Enable Tx is on, it sends HaltTx with `auto_only` true and records it (KTD9). Then it waits for a Status with Enable Tx false and Transmitting false. WSJT-X keeps Enable Tx on across a dial change, so without this step it can transmit on the new band in the next slot.
   2. It enters Settling and records the expected dial and mode (KTD9).
-  3. It sends `set_freq` with the WSJT-X default FT8 or FT4 dial of the band, and then Configure with the mode.
+  3. It sends SetDialFrequency with the WSJT-X default FT8 or FT4 dial of the band, and then Configure with the mode. WSJT-X moves the radio by CAT.
 
-  The gate sends `set_freq` first, so the dial is already in the frequency table of the mode. Then Configure does not move the rig by CAT. It never sends `set_band`, because `set_band` restores the band stack. A mode change on the same band also gets a record, because Configure can move the dial. The gate drops every decode from before the change. FT8 against FT4 comes from the own decode counts of each band visit, because horstreporter does not split its numbers by mode. Governs R15, R19.
+  The gate sends SetDialFrequency first, so the dial is already in the frequency table of the mode. Then Configure does not move the rig again. With stock WSJT-X, the gate refuses every band change request, because stock WSJT-X has no UDP command for the dial. A mode change on the same band also gets a record, because Configure can move the dial. The gate drops every decode from before the change. FT8 against FT4 comes from the own decode counts of each band visit, because horstreporter does not split its numbers by mode. Governs R6, R15, R19, R25.
 - KTD13. **Foraging.** Each band keeps a rate of needed QSOs per hour as a moving average. A cold band starts with a rate from horstreporter `activity_ratio` and the own decode count. auto7 stays at least 2 minutes on a band and samples another band every 20 minutes. Two minutes are 8 FT8 periods or 16 FT4 periods. A high-value spot causes one jump. If auto7 does not decode that station within 2 minutes, it marks the spot "not heard here" for 30 minutes. auto7 never follows a spot on a Fox/Hound dial. The operator keeps the Fox/Hound dials as a list in the configuration file, because WSJT-X has no such table. A decode in the Fox compound form, `RR73;` with a second call, also marks the station "highlight only" for the visit, on any dial. Governs R16, R17, R18, R31.
 - KTD14. **Offset guard and reduced mode.** At Enable with the full build, the gate sends SetHoldTxFreq true. With stock WSJT-X, the operator must turn on "Hold Tx Freq" and "Double-click on call sets Tx enable". In both modes, the gate compares the current TX offset with the offset of the target. If the distance is below the offset distance of KTD15, the gate refuses the call or answer request. The gate also compares the TX offset of the first Status after each Reply with the offset of the called station. If they lie within that distance, the gate sends HaltTx at once and stops with the reason "Hold Tx Freq off". If Enable Tx stays off after a Reply, auto7 stops with the reason "automatic Tx enable off". Governs R25, R27.
 - KTD15. **Default limits with ranges.** These defaults live in the configuration file, and each has a range (KTD6):
@@ -327,7 +327,7 @@ flowchart TB
   H -->|requests: call, answer, CQ, highlight| T
   BA -->|requests: band change, offset move| T
   T -->|Reply, HaltTx, FreeText, Configure, patched commands| W
-  T -->|set_freq| S[StationA radio]
+  W -->|CAT dial| R[Radio]
   H -->|candidates, logged QSOs| B
   WEB[internal/tx/web Enable and Stop] --> T
   T -->|state and reasons| U[internal/ui page]
@@ -355,8 +355,8 @@ sequenceDiagram
   participant W as WSJT-X
   BA->>T: band change request, band and mode
   T->>T: radio in receive, no TX, no QSO, enter Settling, record dial and mode
-  T->>S: set_freq FT8 or FT4 dial of the new band
-  S-->>W: CAT shows the new dial
+  T->>W: SetDialFrequency FT8 or FT4 dial of the new band
+  W->>W: CAT moves the radio
   T->>W: Configure mode
   W-->>T: Status with dial and mode
   S-->>T: live antenna switch, controller and tuner state
@@ -394,15 +394,15 @@ third_party/stationa-shared/
 
 - chase-queue must read the auto7 candidates (KTD17). It reads one finder slot today and ranks every candidate as SSB. The operator asks for the change in opsotter, and auto7 runs with cluster spots only until the change lands.
 - A component of opsotter must write the QSOs from `<site>/hf/auto7/qso` into the log database. logotter use case C41 names this need. The operator asks for the change in opsotter. KTD16 keeps R12 true in the meantime.
-- auto7 needs its own broker account in StationA. It must read presence, chase state, radio and antenna states, and write `radio/cmd`, `chase/cmd` and its own slot. The same request asks for three write limits. Only logotter can write `logotter/presence`, and only chase-queue can write `chase/state`. Only the auto7 account can write `<site>/hf/auto7/#`. A later log intake trusts the QSO topic, so a foreign writer there puts QSOs into the log database. Today the shared `hf` account can write every topic. Until the own account exists, auto7 can run with the `hf` account. The operator decided this on 2026-11-21. With neither account, auto7 cannot change band.
+- auto7 needs its own broker account in StationA. It must read presence, chase state, radio and antenna states, and write `chase/cmd` and its own slot. The same request asks for three write limits. Only logotter can write `logotter/presence`, and only chase-queue can write `chase/state`. Only the auto7 account can write `<site>/hf/auto7/#`. A later log intake trusts the QSO topic, so a foreign writer there puts QSOs into the log database. Today the shared `hf` account can write every topic. Until the own account exists, auto7 can run with the `hf` account. The operator decided this on 2026-11-21. With neither account, auto7 cannot reach the bus and stays stopped.
 - A hard crash of auto7 leaves WSJT-X with Enable Tx on. Then only the WSJT-X Tx watchdog ends the transmission (Assumptions).
 - ws-hunter is young and has one maintainer, and it follows WSJT-X Improved, not upstream WSJT-X. When ws-hunter is missing, auto7 falls back to reduced mode (KTD3).
-- WSJT-X controls the radio by CAT, and auto7 sends `set_freq` on the bus. Both act on the same slice. KTD12 sends band commands only while the radio is in receive.
+- WSJT-X controls the radio by CAT, and logotter can also send `radio/cmd`. Both act on the same slice. KTD12 sends band changes only while the radio is in receive, and a dial change that auto7 did not command counts as a takeover (KTD9).
 - The integration tests need Docker on the development machine for the Mosquitto container (U4).
 
 ### System-Wide Impact
 
-- StationA: auto7 becomes a second sender of `radio/cmd` next to logotter. antennaselect, the tuner and the PA follow the band as today.
+- StationA: auto7 sends no commands to StationA. antennaselect, the tuner and the PA follow the band that WSJT-X sets by CAT, as today.
 - chase-queue: a new candidate source, after the change in chase-queue.
 - logotter: the operator sees band changes of auto7 in its radio view. A future intake reads `<site>/hf/auto7/qso`.
 - Browser of the operator: the local page is a new surface that can arm a transmitter (KTD5).
@@ -450,7 +450,7 @@ Waits on: none.
 - **Files:** `test/integration/run.sh`, `test/integration/mosquitto.conf`, `test/integration/harness_test.go`, `test/integration/peers/wsjtx.go`, `test/integration/peers/chasequeue.go`, `test/integration/peers/station.go`, `test/integration/peers/presence.go`, `test/integration/peers/horstreporter.go`, `test/integration/peers/peers_test.go`.
 - **Approach:**
   1. Add the script `test/integration/run.sh`. A `docker run` command starts Mosquitto with the test configuration `test/integration/mosquitto.conf` (`listener 1883`, `allow_anonymous true`). A plain service container cannot mount that file, and Mosquitto 2 without it accepts only local connections. The script waits until the port answers, then runs the Go tests under `test/integration` with a build tag.
-  2. Add a fake WSJT-X peer. It sends scripted Heartbeat with a stock or `-hunter` revision, Status with Special Op Mode, Tx DF and Enable Tx, Decode and QSOLogged. It records every inbound command, also the types 24 to 28. It carries its own small encoder on purpose, so a codec error cannot hide in both sides.
+  2. Add a fake WSJT-X peer. It sends scripted Heartbeat with a stock or `-hunter` revision, Status with Special Op Mode, Tx DF and Enable Tx, Decode and QSOLogged. It records every inbound command, also the types 20 and 24 to 28. It carries its own small encoder on purpose, so a codec error cannot hide in both sides.
   3. Add fake chase-queue and StationA peers. They publish retained or live state for radio (`tx`, `tuning`, band) and antenna switch (`settled`, `selected`). They also publish the antenna controller (`moving`), the tuner (`settling`) and the antennaselect target, and they record commands. Each source can publish on change only or with a heartbeat.
   4. Add a presence peer that sends live or retained messages and can stop. Add a horstreporter HTTP fake that can fail on request, and a way to cut the broker link.
   5. Start with one smoke test that builds `cmd/auto7` and proves that the test setup runs.
@@ -521,8 +521,7 @@ Waits on: stage 1.
   1. Subscribe to presence, chase state and status, radio state, antenna switch, antenna controller, tuner and antennaselect state. Also subscribe to their status topics and the slots of other auto7 instances.
   2. Report for each message whether it was retained, and its payload `ts`.
   3. Publish `online` and `offline` as LWT on `<site>/hf/auto7/<host>/status`, and the state, candidates and QSO topics of KTD5, KTD17 and KTD18, through typed methods only.
-  4. Hand a raw publish handle for `radio/cmd` to `cmd/auto7` only, for the gate (KTD2).
-  5. Keep a consumer copy of the chase-queue row types with a note to keep it in step.
+  4. Keep a consumer copy of the chase-queue row types with a note to keep it in step.
 - **Patterns to follow:** chase-queue `internal/app/mqtt.go` (LWT, birth, handlers that enqueue), StationA `shared/schema` topic builders.
 - **Test scenarios:**
   - A retained presence message is marked retained.
@@ -603,9 +602,10 @@ Waits on: stage 2. Stage 1 must be complete first, because U5 depends on U11.
   - An automatic Enable Tx off after 73, seen in the Tx message field: no takeover.
   - A WSJT-X restart or a change of revision: stop with "WSJT-X restarted".
   - A band change request while the QSO view is open: refused.
-  - A band change request while the radio reports `tx`: refused, and no `set_freq` goes out.
-  - A band change: `set_freq` goes out before Configure, and the state goes to Settling first.
-  - A band change request while Enable Tx is on and Transmitting is false: HaltTx with `auto_only` true goes out first, and no `set_freq` goes out until Status shows Enable Tx false.
+  - A band change request while the radio reports `tx`: refused, and no SetDialFrequency goes out.
+  - A band change: SetDialFrequency goes out before Configure, and the state goes to Settling first.
+  - A band change request while Enable Tx is on and Transmitting is false: HaltTx with `auto_only` true goes out first, and no SetDialFrequency goes out until Status shows Enable Tx false.
+  - Stock build: a band change request is refused, and nothing goes out.
   - Covers AE9. After a band change the antenna switch reports `settled` false: TX is refused until all readiness conditions hold and 3 s passed.
   - A retained `settled` true delivered at subscribe does not count.
   - A band change with an unchanged antenna port and no tuner message: Running after 3 s, with no stop.
@@ -711,7 +711,7 @@ Waits on: stage 4.
   - A band with `activity_level` "low_sample" gets the shortest visit.
   - A failed horstreporter request: foraging goes on with the own decodes.
   - A spot station not decoded within 2 minutes: marked "not heard here" for 30 minutes.
-  - Integration, F3: the fake station reports `settled` false after `set_freq`, and no Reply goes out until it reports ready.
+  - Integration, F3: the fake station reports `settled` false after SetDialFrequency, and no Reply goes out until it reports ready.
 - **Verification:** Unit and integration tests pass.
 
 ### U9. TX offset and CQ
