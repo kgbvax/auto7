@@ -143,7 +143,7 @@ func TestSmoke(t *testing.T) {
 	if err := e.Station.SetRadio("20m", false, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := e.ChaseQueue.Publish(map[string]any{"rows": []any{}}); err != nil {
+	if err := e.ChaseQueue.Publish(map[string]any{"ranked": []any{}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := e.Presence.Start(time.Second); err != nil {
