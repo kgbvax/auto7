@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="{{.Refresh}}">
+<title>auto7: {{.ArmText}}</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+<section class="panel">
+<h1 class="title">auto7</h1>
+<div class="body">
+<p class="arm {{if .Armed}}arm-on{{else}}arm-off{{end}}">
+<span class="label">State</span> <strong>{{.ArmText}}</strong>
+</p>
+<div class="actions">
+<form method="post" action="{{.EnablePath}}">
+<input type="hidden" name="{{.TokenField}}" value="{{.Token}}">
+<button type="submit" class="{{if not .Armed}}primary{{end}}">Enable</button>
+</form>
+<form method="post" action="{{.StopPath}}">
+<input type="hidden" name="{{.TokenField}}" value="{{.Token}}">
+<button type="submit" class="{{if .Armed}}primary{{end}}">Stop</button>
+</form>
+</div>
+{{if .ListsErr}}<p class="msg alarm"><strong>Error:</strong> The hunt lists are unreadable. Enable is not possible. {{.ListsErr}}</p>{{end}}
+{{if .State.NotStopped}}<p class="msg alarm"><strong>Alarm:</strong> WSJT-X did not stop. auto7 sent Halt Tx again. Check WSJT-X now.</p>{{end}}
+{{if .State.StopReason}}<p class="msg warn"><strong>Last stop:</strong> {{.State.StopReason}}{{if .Stopped}} at {{.Stopped}}{{end}}</p>{{end}}
+{{if .State.Hint}}<p class="msg info"><strong>Hint:</strong> {{.State.Hint}}</p>{{end}}
+{{if .State.Warning}}<p class="msg warn"><strong>Warning:</strong> {{.State.Warning}}</p>{{end}}
+{{if .Reduced}}<p class="msg info"><strong>Reduced mode:</strong> WSJT-X is a stock build. auto7 hunts and answers on the band that you set. It calls no CQ, does not choose its TX offset and does not change band.</p>{{end}}
+</div>
+</section>
+
+<section class="panel">
+<h2 class="title">State</h2>
+<table>
+<tbody>
+<tr><th scope="row">Band</th><td class="data">{{with .State.Band}}{{.}}{{else}}unknown{{end}}</td></tr>
+<tr><th scope="row">Mode</th><td class="data">{{with .State.Mode}}{{.}}{{else}}unknown{{end}}</td></tr>
+<tr><th scope="row">Task</th><td class="data">{{with .Task}}{{.}}{{else}}none{{end}}</td></tr>
+<tr><th scope="row">WSJT-X build</th><td>{{.Build}}</td></tr>
+<tr><th scope="row">Presence host</th><td class="data">{{with .Presence}}{{.}}{{else}}none: operator not present{{end}}</td></tr>
+<tr><th scope="row">Last stop reason</th><td class="selectable">{{with .State.StopReason}}{{.}}{{else}}none{{end}}</td></tr>
+<tr><th scope="row">Last refusal</th><td class="selectable">{{with .Refusal}}{{.}}{{else}}none{{end}}</td></tr>
+<tr><th scope="row">Hint</th><td>{{with .State.Hint}}{{.}}{{else}}none{{end}}</td></tr>
+<tr><th scope="row">Warning</th><td>{{with .State.Warning}}{{.}}{{else}}none{{end}}</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="panel">
+<h2 class="title">WSJT-X settings that auto7 needs</h2>
+<table>
+<thead><tr><th scope="col">Setting</th><th scope="col">Needed value</th></tr></thead>
+<tbody>
+{{range .Options}}<tr><td>{{.Name}}</td><td>{{.Value}}</td></tr>
+{{end}}</tbody>
+</table>
+</section>
+</main>
+<footer class="status">The page reloads every {{.Refresh}} s. <a href="/">Reload now</a></footer>
+</body>
+</html>
